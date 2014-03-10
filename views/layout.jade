@@ -1,10 +1,30 @@
 doctype html
 html
-  head
-    title= title
-    link(rel='stylesheet', href='/stylesheets/style.css').
-    script(src='/javascripts/jquery-2.1.0.js').
-    script(src='/javascripts/handlebars-v1.3.0.js').
-    script(src='/javascripts/main.js').
-  body
-    block content
+	head
+		title= title
+		link(rel='stylesheet', href='/stylesheets/style.css').
+		link(rel='stylesheet', href='/stylesheets/semantic.css').
+		script(src='/javascripts/jquery-2.1.0.js').
+		script(src='/javascripts/handlebars-v1.3.0.js').
+		script(src='/javascripts/semantic.min.js').
+		script(src='/javascripts/main.js').
+	body
+		.ui.tiered.menu
+			ui.item #{title}
+			.right.menu
+				a.item.ajax#all
+					i.browser.icon
+					| View All
+				a.item.ajax#trend
+					i.signal.icon
+					| Trending
+				a.item.ajax#charts
+					i.pie.chart.basic.icon
+					| Charts
+				a.item.ajax#create
+					i.terminal.icon
+					| New Post
+			.ui.sub.menu
+				a.item.ajax.sort#points sort by Points
+				a.item.ajax.sort#date sort by Date
+		block content

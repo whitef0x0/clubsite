@@ -20,6 +20,8 @@ var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, par
 
 
 var Hackernews = (function() {
+  var jquery = fs.readFileSync("./public/javascripts/jquery-2.1.0.js");
+
   __extends(Hackernews, events.EventEmitter);
   function Hackernews() {
     this.base = 'http://news.ycombinator.com';
@@ -30,7 +32,7 @@ var Hackernews = (function() {
   Hackernews.prototype.scrape = function(url, callback) {
     var self;
     self = this;
-    return jsdom.env(self.base+url, ['http://code.jquery.com/jquery-1.5.min.js'], function(err, win) {
+    return jsdom.env(self.base+url, ['http://code.jquery.com/jquery-2.1.0.min.js'], function(err, win) {
       var $, posts, i;
       $ = win.$;
       posts = [];
@@ -42,7 +44,8 @@ var Hackernews = (function() {
         posts[i] = {
           title: title,
           url: url,
-          info: {}
+          info: {},
+          id: i
         };
         $('td.subtext:eq(' + i + ') > *').each(function() {
           var data, raw;
@@ -59,9 +62,20 @@ var Hackernews = (function() {
         });
         tmp = $('td.subtext:eq(' + i + ')').text();
         if (posts[i].info.postedBy != null) {
-          posts[i].info.postedAgo = tmp.split(posts[i].info.postedBy + ' ')[1].split('ago')[0] + 'ago';
+          posts[i].info.date = tmp.split(posts[i].info.postedBy + ' ')[1].split('ago')[0];
         }
-        posts[i].info.postedAgo = tmp;
+        var date_tmp = tmp.split(" ").splice(4,2);
+        date_obj = new Date();
+
+        if(date_tmp[1] == "minutes"){
+          date_obj.setMinutes(date_obj.getMinutes() - parseInt(date_tmp));
+        }else if(date_tmp[1] == "hours"){
+          date_obj.setHours(date_obj.getHours() - parseInt(date_tmp));
+        }else if(date_tmp[1] == "days"){
+          date_obj.setDate(date_obj.getDate - parseInt(date_tmp));
+        }
+
+        posts[i].info.date = date_obj;
         self.emit('doc', posts[i]);
         return i++;
       });
@@ -100,7 +114,7 @@ var Hackernews = (function() {
             }
           });
           tmp = $('span.comhead:eq(' + b + ')').text();
-          comment.postedAgo = tmp.split(comment.postedBy + ' ')[1].split('ago')[0] + 'ago';
+          comment.date = tmp.split(comment.postedBy + ' ')[1].split('ago')[0] + 'ago';
           $('span.comment:eq(' + i + ') > *').each(function() {
             return comment.text = $(this).text();
           });

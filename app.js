@@ -6,7 +6,7 @@ var express = require('express'),
     cookieParser = require('cookie-parser'),
     bodyParser = require('body-parser'),
     routes = require('./routes'),
-    users = require('./routes/user'),
+    posts = require('./routes/posts'),
     app = express();
 
 // view engine setup
@@ -24,7 +24,7 @@ app.use(app.router);
 
 //Route controller
 app.get('/', routes.index);
-app.get('/news/:type', users.middleware);
+app.get('/ajax/:type/:option?*', posts.middleware);
 
 /// catch 404 and forwarding to error handler
 app.use(function(req, res, next) {

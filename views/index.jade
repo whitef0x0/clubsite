@@ -1,22 +1,24 @@
 extends layout
 
 block content
-	h1= title
-	p Welcome to #{title}
-	button.ajax#all show all
-	button.ajax#sort order by points
-
-
-
 	script(id = "post-template" type ="text/x-handlebars-template")
-		ul
+		.ui.divided.list
 			{{#each posts}}
-			li
-				h2
-					a(href="{{url}}") {{title}}
-				div.points(id="{{itemId}}")
-					button.ajax#upvote ^
-					{{info.points}} points
+			.item(id="{{id}}")
+				a.ui.right.floated
+					i.icon.triangle.down 
+					a(href="https://news.ycombinator.com/item?id={{itemId}}") comments
+				.ui.left.floated.ajax.upvote 
+					i.thumbs.up.icon
+				.content
+					h3.header.title
+						a(href="{{url}}") {{title}}
+					.points 
+						strong {{info.points}} points 
+						em.date(style="") {{info.date}} 
 			{{/each}}
+
+	.ui.active.striped.progress
+		.bar(style="width:100%")
 
 	#posts_output
