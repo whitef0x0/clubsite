@@ -1,5 +1,22 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
+	h1= title
+	p Welcome to #{title}
+	button.ajax#all show all
+	button.ajax#sort order by points
+
+
+
+	script(id = "post-template" type ="text/x-handlebars-template")
+		ul
+			{{#each posts}}
+			li
+				h2
+					a(href="{{url}}") {{title}}
+				div.points(id="{{itemId}}")
+					button.ajax#upvote ^
+					{{info.points}} points
+			{{/each}}
+
+	#posts_output
