@@ -8,7 +8,7 @@ var express = require('express'),
     routes = require('./routes'),
     posts = require('./routes/posts'),
     graphs = require('./routes/graphs'),
-    crud = require('./routes/graphs'),
+    crud = require('./routes/crud'),
     app = express();
 
 // view engine setup
@@ -25,7 +25,6 @@ app.use(app.router);
 
 
 //Route controller
-
 app.get('/post/:type/:option?*', posts.middleware);
 app.get('/graph/:type/:option?*', graphs.middleware);
 app.get('/:view?*', routes.index);

@@ -6,3 +6,16 @@ body {
 a {
   color: #00B7FF;
 }
+
+.list.article{
+	margin-left: 20%;
+	padding: 20px 20px 20px 20px;
+	color: #331212;
+	border: 3px solid #f6f7ff;
+	border-radius: 10px;
+	background-color: #f6f7ff;
+}
+
+	.p{
+		padding: 15px 5px 15px 5px;
+	}

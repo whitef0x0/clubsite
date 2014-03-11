@@ -66,18 +66,23 @@ var renderGraphs = function (data) {
   }]);
 }
 
-var showPostComments = function (post) {
-  id = "#"+post.id;
+var showPostArticle = function (obj) {
+  //var paragraphs = obj.Paragraphs;
+  var post = obj.Post;
   console.log(post);
-  $(id+"> .content > .header > a").html(post.title);
-  $(id+"> .content > .details > .points").html(post.info.points+" points ");
+  console.log(obj.Paragraphs);
+  var selector = "div#"+post.id+".list.article";
+  console.log(selector);
+  for(var i=0; i<(obj.Paragraphs.length-1 && 4); i++){
+    $(selector).append("<p>"+obj.Paragraphs[i]+"</p>");
+  }
 }
 
 var eventHandler = function (event) {
   var event_class = $(event.target).attr("class").split(" ")[$(event.target).attr("class").split(" ").length-1], 
       ajax_path = "",
       event_id = $(event.target).attr("class").split(" ")[2] || event.target.id,
-      post_id = $(event.target).parent().parent().attr("id");
+      post_id = $(event.target).parent().attr("id") || $(event.target).parent().parent().attr("id");
   if(event_id === "graph"){
     ajax_path = "graph/";
   }else {
@@ -86,12 +91,24 @@ var eventHandler = function (event) {
 
   //@TODO: Clean up client side event handling (maybe with BackboneJS or Angular?)
   /* CLIENT-SIDE route handling */
-  if(event_class === "comments"){
-    ajax_path += "comment?id="+post_id;
-    target_post = client_Posts.get_obj(parseInt(post_id));
-    console.log(target_post);
-    $.get("ajax/comments?itemId="+target_post.itemId, function (data) {
-      showPostComments(data);
+  console.log("class:"+event_class);
+  if(event_class === "article"){
+
+    ajax_path += "article?id="+post_id;
+    var target_post = client_Posts.get_obj(parseInt(post_id));
+    var selector1 = "div#"+post_id+".list.article";
+    var selector2 = "div#"+post_id+".item > a ";
+    $.get(ajax_path, function (data) {
+      $(selector2+"> i.icon").toggleClass("down").toggleClass("up");
+      if( $(selector1+"> p").html() !== data.Paragraphs[0] ){
+        
+        if( data.Paragraphs[0] === undefined){
+          data.Paragraphs = ["Could not grab text from page. Please click link above to view", "", "", ""];
+        }
+        showPostArticle(data);
+      } else {
+        $(selector1).toggle();
+      }
     });
   }else if(event_id === "graph"){
     ajax_path = "graph/all";
@@ -156,7 +173,9 @@ var eventHandler = function (event) {
         if(event_class !== "upvote"){  
           client_Posts.set(data);
           renderAllPosts(data);
-        } else{
+        } else if(event_class == "article"){
+          console.log("Article Event");
+        }else{
           client_Posts.set_obj(data, parseInt(data.id));
           updatePost(data);
         }

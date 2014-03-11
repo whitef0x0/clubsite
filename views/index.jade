@@ -2,11 +2,13 @@ extends layout
 
 block content
 	script(id = "post-template" type ="text/x-handlebars-template")
+		
+		{{#each posts}}
 		.ui.divided.list
-			{{#each posts}}
 			.item(id="{{id}}")
-				.ui.right.floated
-					i.icon.triangle.down.ajax.comments
+				a.ui.right.floated
+					i.icon.triangle.down.ajax.article
+
 				.ui.left.floated
 					i.thumbs.up.icon.ajax.upvote
 				.content
@@ -15,7 +17,8 @@ block content
 					.details 
 						strong.points {{info.points}} points 
 						em.date {{info.date}} 
-			{{/each}}
+		.ui.divided.list.article(id="{{id}}")
+		{{/each}}
 
 	script(id = "form-template" type ="text/x-handlebars-template")
 		{{#if isCreate}}

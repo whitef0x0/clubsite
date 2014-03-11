@@ -30,10 +30,10 @@ var Hackernews = (function() {
     this.newest = this.base + '/newest';
     this.ask = this.base + '/ask';
   }
-  Hackernews.prototype.scrape_int = function(url, callback) {
+  Hackernews.prototype.scrape_int = function(Url, callback) {
     var self;
     self = this;
-    return jsdom.env({url: self.base+url, src:[jquery], done: function(err, win) {
+    return jsdom.env({url: self.base+Url, src:[jquery], done: function(err, win) {
         var $, posts, i;
         $ = win.$;
         posts = [];
@@ -88,60 +88,32 @@ var Hackernews = (function() {
       }
     });
   }
-  Hackernews.prototype.scrape_ext = function(url, callback) {
+  Hackernews.prototype.scrape_paragraph = function(Url, callback) {
     var self;
     self = this;
-    return jsdom.env(url, ['http://code.jquery.com/jquery-2.1.0.min.js'], function(err, win) {
-      var $, doc, i;
-      $ = win.$;
-      posts = [];
-      i = 0;
-      $('td.title:not(:last) > a').each(function() {
-        var title, tmp;
-        title = $(this).text();
-        url = $(this).attr('href');
-        posts[i] = {
-          title: title,
-          url: url,
-          info: {},
-          id: i
-        };
-        $('td.subtext:eq(' + i + ') > *').each(function() {
-          var data, raw;
-          raw = $(this).text();
-          data = raw.split(' ')[0];
-          if (raw.indexOf('points') !== -1) {
-            return posts[i].info.points = data;
-          } else if (raw.indexOf('comments') !== -1) {
-            posts[i].itemId = $(this).attr('href').split('=')[1];
-            return posts[i].info.comments = data;
-          } else if (raw.indexOf('discuss') === -1) {
-            return posts[i].info.postedBy = data;
+    return jsdom.env({url: Url, src: [jquery],
+      done: function(err, win) {
+        var $, article = [], i, count;
+        $ = win.$;
+        i = 0;
+        count = 0;
+        /*
+        if ( $('article > * > p').html() != undefined ) {
+          target = $('article > * > p');
+        }else if( $('article > * > p').html() != undefined)*/
+        $("article p+p, div[class^='article'] p+p,div[class*=' article'] p+p").each(function() {
+          if($(this).text() !== ""){
+            article[i] = $(this).text();
+            i++;
+          }else if(count < 2){
+            count++;
+          }else {
+            return false;
           }
         });
-        tmp = $('td.subtext:eq(' + i + ')').text();
-        if (posts[i].info.postedBy != null) {
-          posts[i].info.date = tmp.split(posts[i].info.postedBy + ' ')[1].split('ago')[0];
+        if (callback != null) {
+          return callback(article);
         }
-        var date_tmp = tmp.split(" ").splice(4,2);
-        date_obj = new Date();
-
-        if(date_tmp[1] == "minutes"){
-          date_obj.setMinutes(date_obj.getMinutes() - parseInt(date_tmp));
-        }else if(date_tmp[1] == "hours"){
-          date_obj.setHours(date_obj.getHours() - parseInt(date_tmp));
-        }else if(date_tmp[1] == "days"){
-          date_obj.setDate(date_obj.getDate - parseInt(date_tmp));
-        }
-
-
-        if(!posts[i].info.points) posts[i].info.points = 0;
-        posts[i].info.date = date_obj;
-        self.emit('doc', posts[i]);
-        return i++;
-      });
-      if (callback != null) {
-        return callback(posts);
       }
     });
   };

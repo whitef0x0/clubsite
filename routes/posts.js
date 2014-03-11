@@ -108,7 +108,6 @@ var scrapeNews = function(req, res, no_res, type){
 
  	return;
 };
-
 var sortNews = function (req, res) {
 	if ( !Post_Model.get("top") ){
 		getNews(req,res, 1);
@@ -141,11 +140,10 @@ var upvoteArticle = function (req,res) {
 	var curr_points = parseInt(curr_obj[0].info.points, 10) + 1;
 	curr_obj[0].info.points = curr_points+'';
 
-	Post_Model.set_obj(curr_obj[0], curr_obj[1], "top");
+	var obj = Post_Model.set_obj(curr_obj[0], curr_obj[1], "top");
 
-	res.send(curr_obj[0]);
-};
-
+	res.send(obj);
+}
 var getTrending = function(req,res) {
 	scrapeNews(req,res,1,"newest");
 
@@ -153,11 +151,13 @@ var getTrending = function(req,res) {
 	res.send(Post_Model.get("newest").sort( sort_by("info", "points", false, parseInt) ));
 };
 
-var scrapeComments = function(req,res) {
-	hn_bot.scrapeItem(req.query.itemId, function(comments) {
-		res.send(comments);
-		return;
+var scrapeArticle = function(req,res) {
+	var obj = find_obj_by_id(Post_Model.get("top"),req.query.id)[0];
+	hn_bot.scrape_paragraph(obj.url, function(article) {
+		//console.log(article);
+		res.send({Post: obj, Paragraphs: article} );
 	});
+
 };
 
 exports.middleware = function(req,res){
@@ -167,8 +167,8 @@ exports.middleware = function(req,res){
 		sortNews(req,res);
 	}else if(req.params.type === "upvote") {
 		upvotePost(req,res);
-	}else if(req.params.type === "comments") {
-		scrapeComments(req,res);
+	}else if(req.params.type === "article") {
+		scrapeArticle(req,res);
 	}else if(req.params.type === "trend") {
 		getTrending(req,res);
 	}else if(req.params.type === "create") {
