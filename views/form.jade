@@ -1,0 +1,39 @@
+extends layout
+block content 
+	if type === 'create_post'
+		.ui.form.segment
+			.field
+				.label Title
+				input(type="text")
+			.field
+				.label Link
+				input(type="text")
+			.field
+				.label Description
+				textarea
+			.ui.blue.submit.button
+				| Submit
+	else 
+		if type == 'signin'
+			.ui.form.segment
+				.field
+					label Username
+					.ui.left.labeled.icon.input
+						input(type='text', placeholder='Username')
+						i.user.icon
+						.ui.corner.label
+							i.icon.asterisk
+				.field
+					label Password
+					.ui.left.labeled.icon.input
+						input(type='password')
+						i.lock.icon
+						.ui.corner.label
+							i.icon.asterisk
+				.ui.error.message
+					.header We noticed some issues
+				.ui.blue.submit.button Login
+		else
+			p No form for you :P
+
+				

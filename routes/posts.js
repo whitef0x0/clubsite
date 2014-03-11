@@ -3,35 +3,50 @@ var Hackernews = require('./../hackernews'),
 		_ = require("underscore");
 var hn_bot = new Hackernews(); 
 
-
-var Posts = function(){
-	var posts =[];
+var Post_Model = exports.Model = function(){
+	var model = {};
+	model.top = [], model.newest = [];
 	return {
-		get: function (){
-			return posts;
+		get: function (type){
+			return model[type];
 		},
-		set: function(arr){
-			posts = arr;
+		set: function(arr,type){
+			model[type] = arr;
 		},
-		set_obj: function(obj, key){
-			posts[key] = obj;
+		set_obj: function(obj, key, type){
+			model[type][key] = obj;
+		},
+		push_obj: function(obj, type){
+			model[type].push(obj);
+			return model[type].length-1;
 		}
 	};
 }();
-
-
 
 /* UTILITY functions */
 var sort_by = function(field1, field2, reverse, primer){
 	//Set sorting property to return val of primer func or just to object prop field
 	if(primer){
-	    key = function(x){return primer(x[field1][field2]);};
+			if(field2){
+		    key = (field2 === "date" ? 
+		    	function(x){return primer(x[field1][field2].valueOf());} : 
+		    	function(x){return primer(x[field1][field2]);} );
+		  }else {
+		  	key = (field2 === "date" ? 
+		    	function(x){return primer(x[field1].valueOf());} : 
+		    	function(x){return primer(x[field1]);} );
+		  }
 	} 
   else{
-	    key = function(x){return x[field1][field2];};                     
-	}
-	if(field2 === "date"){
-		key = key.valueOf();
+  		if(field2){
+		    key = (field2 === "date" ? 
+		    	function(x){return x[field1][field2].valueOf();} : 
+		    	function(x){return x[field1][field2];} );      
+	    }else {
+		  	key = (field2 === "date" ? 
+		    	function(x){return primer(x[field1].valueOf());} : 
+		    	function(x){return primer(x[field1]);} );
+		  }            
 	}
 
   //make sure that you receive a 1 or a 0, by using double not operators
@@ -72,62 +87,92 @@ var array_objs_equal = function (a,b) {
 }
 
 /* Scrape data from HN */
-var scrapeNews = function(req, res, no_res){
+var scrapeNews = function(req, res, no_res, type){
 	var date = new Date();
 	no_update = {no_render: true};
 	function scrapeResp (posts){
-		if( !( array_objs_equal(Posts.get(), posts) ) ){
-			Posts.set(posts);
-			console.log("scrape"+posts[0].title+" stored"+Posts.get()[0].title);
-			console.log("if statement");
+		if( !( array_objs_equal(Post_Model.get(type), posts) ) ){
+			Post_Model.set(posts, type);
 			if(!no_res){
 				res.send(posts);
 			}
-		}else{
-			console.log("else statement");
-			res.send(no_update);
+		}else if(!no_res){
+			res.send(Post_Model.get(type));
 		}
 	}
+	path = "/";
+	if(type === "newest") {
+		path += "newest";
+	}
+	hn_bot.scrape_int(path, scrapeResp);
 
-	hn_bot.scrape('/', scrapeResp);
-
- 	return Posts.get();
+ 	return;
 };
 
 var sortNews = function (req, res) {
-	if ( !Posts.get() ){
+	if ( !Post_Model.get("top") ){
 		getNews(req,res, 1);
 	}
-	res.send( Posts.get().sort(sort_by('info', req.params.option, false, parseInt)) );
+	if(req.params.option === "normal"){
+		res.send( Post_Model.get("top").sort(sort_by('id', false, false, parseInt)) );
+	} else{
+		res.send(Post_Model.get("top").sort( sort_by("info", req.params.option, false, parseInt) ));
+	}
 };
 
-var upvoteArticle = function (req,res) {
-	var arr = Posts.get();
+var upvotePost = function (req,res) {
+	var arr = Post_Model.get("top");
 	//curr_obj = [object, index_of_object]
-	console.log(req.query.id)
 	var curr_obj = find_obj_by_id(arr, req.query.id);
-	console.log(curr_obj[0]);
 
 	var curr_points = parseInt(curr_obj[0].info.points, 10) + 1;
-	//console.log(curr_points);
 	curr_obj[0].info.points = curr_points+'';
 
-	Posts.set_obj(curr_obj[0], curr_obj[1]);
-	console.log(curr_obj[0]);
+	Post_Model.set_obj(curr_obj[0], curr_obj[1], "top");
 
 	res.send(curr_obj[0]);
 };
 
-var rankTrending = function(req,res) {};
+var upvoteArticle = function (req,res) {
+	var arr = Post_Model.get("top");
+	//curr_obj = [object, index_of_object]
+	var curr_obj = find_obj_by_id(arr, req.query.id);
+
+	var curr_points = parseInt(curr_obj[0].info.points, 10) + 1;
+	curr_obj[0].info.points = curr_points+'';
+
+	Post_Model.set_obj(curr_obj[0], curr_obj[1], "top");
+
+	res.send(curr_obj[0]);
+};
+
+var getTrending = function(req,res) {
+	scrapeNews(req,res,1,"newest");
+
+	Post_Model.set( Post_Model.get("newest").sort( sort_by("info", "points", false, parseInt) ), "newest");
+	res.send(Post_Model.get("newest").sort( sort_by("info", "points", false, parseInt) ));
+};
+
+var scrapeComments = function(req,res) {
+	hn_bot.scrapeItem(req.query.itemId, function(comments) {
+		res.send(comments);
+		return;
+	});
+};
 
 exports.middleware = function(req,res){
-	console.log(req.params.type);
 	if(req.params.type === "all"){
-		scrapeNews(req,res,0);
+		scrapeNews(req,res,0,"top");
 	}else if(req.params.type === "sort") {
 		sortNews(req,res);
 	}else if(req.params.type === "upvote") {
-		upvoteArticle(req,res);
+		upvotePost(req,res);
+	}else if(req.params.type === "comments") {
+		scrapeComments(req,res);
+	}else if(req.params.type === "trend") {
+		getTrending(req,res);
+	}else if(req.params.type === "create") {
+		createPost(req,res);
 	}
 	else{
 	  res.render('error', {

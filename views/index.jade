@@ -5,20 +5,60 @@ block content
 		.ui.divided.list
 			{{#each posts}}
 			.item(id="{{id}}")
-				a.ui.right.floated
-					i.icon.triangle.down 
-					a(href="https://news.ycombinator.com/item?id={{itemId}}") comments
-				.ui.left.floated.ajax.upvote 
-					i.thumbs.up.icon
+				.ui.right.floated
+					i.icon.triangle.down.ajax.comments
+				.ui.left.floated
+					i.thumbs.up.icon.ajax.upvote
 				.content
-					h3.header.title
+					h3.header
 						a(href="{{url}}") {{title}}
-					.points 
-						strong {{info.points}} points 
-						em.date(style="") {{info.date}} 
+					.details 
+						strong.points {{info.points}} points 
+						em.date {{info.date}} 
 			{{/each}}
+
+	script(id = "form-template" type ="text/x-handlebars-template")
+		{{#if isCreate}}
+		h2.header
+			| Create a New Post
+		.ui.form.segment
+			.field
+				.label Title
+				input(type="text").title
+			.field
+				.label Link
+				input(type="text").link
+			button.ui.ajax.blue.submit.button.crud#create
+				| Submit
+		{{/if}}
+		{{#if isLogin}}
+		.ui.form.segment
+			.header
+				Login
+			.field
+				label Username
+				.ui.left.labeled.icon.input
+					input(type='text', placeholder='Username')
+					i.user.icon
+					.ui.corner.label
+						i.icon.asterisk
+			.field
+				label Password
+				.ui.left.labeled.icon.input
+					input(type='password')
+					i.lock.icon
+					.ui.corner.label
+						i.icon.asterisk
+			.ui.error.message
+				.header We noticed some issues
+			button.ui.ajax.blue.submit.button.crud#login Login
+		{{/if}}
+
+				
 
 	.ui.active.striped.progress
 		.bar(style="width:100%")
+	.ui.active.striped.progress
+		.bar(style="width:100%")
 
-	#posts_output
+	#output

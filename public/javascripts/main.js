@@ -9,72 +9,194 @@ var client_Posts = function(){
     },
     set_obj: function(obj, key){
       posts[key] = obj;
+    },
+    get_obj: function(key){
+      return posts[key];
     }
   };
 }();
+
+var unique_client = function() {
+  var _ip = null;
+  var _vote_count = 0;
+  return {
+    ip: function() {
+      return _ip;
+    }
+  }
+}
 
 var renderAllPosts = function (Posts) {
   var time_options = {month:"short", day:"numeric", hour: "2-digit", minute: "2-digit"}
   var source = $("#post-template").html();
   var template = Handlebars.compile(source);
-  var tmp;
-  console.log(Posts);
-  for(var i=0; i < Posts.length-1; i++) {
-    tmp = new Date(Posts[i].info.date);
-    Posts[i].info.date = tmp.toLocaleTimeString("en-US",time_options);
-    console.log(Posts[i].info.date);
-  }
+  
+  var format_time = function () {
+    var tmp;
+    for(var i=0; i < Posts.length-1; i++) {
+      tmp = Posts[i].info.date ? new Date(Posts[i].info.date) : null;
+      if(tmp) { Posts[i].info.date = tmp.toLocaleTimeString("en-US",time_options); }
+    }
+  }();
   var wrapper = {posts: Posts};
   var output = template(wrapper);
-; $("#posts_output").html(output);
-
+  $("#output").html(output);
 }
+
+var renderForm = function (Form) {
+  var source = $("#form-template").html();
+  var template = Handlebars.compile(source);
+  var wrapper = {isCreate: Form.create, isLogin: Form.login};
+  var output = template(wrapper);
+  $("#output").html(output);
+}
+
 
 var updatePost = function (post) {
-  id = "li#"+post.id;
-  console.log(post.info);
-  $(id+" > a").html(post.title).attr("href", post.url);
-  $(id+" > .info div.points").html(post.info.points+" points");
+  id = "#"+post.id;
+  console.log(post);
+  $(id+"> .content > .header > a").html(post.title);
+  $(id+"> .content > .details > .points").html(post.info.points+" points ");
 }
 
+var renderGraphs = function (data) {
+  $.plot("#output", [{
+    data: data,
+    lines: {show: true}
+  }]);
+}
 
-$(function() {
-  $(".ui.progress.striped").hide();
-  $(".ui.sub.menu").hide();
-  $(document).on('click', ".ajax", function(event){
-    ajax_path = "ajax/"
-    event_type = ($(event.target).hasClass("upvote") || $(event.target).hasClass("sort") ) ? $(event.target).attr("class").split(" ")[2]: event.target.id;
-    ajax_path += event_type;
+var showPostComments = function (post) {
+  id = "#"+post.id;
+  console.log(post);
+  $(id+"> .content > .header > a").html(post.title);
+  $(id+"> .content > .details > .points").html(post.info.points+" points ");
+}
 
-    if(event_type === "upvote") {
-      post_id = $(event.target).attr('id');
-      ajax_path = "ajax/upvote?id="+post_id;
+var eventHandler = function (event) {
+  var event_class = $(event.target).attr("class").split(" ")[$(event.target).attr("class").split(" ").length-1], 
+      ajax_path = "",
+      event_id = $(event.target).attr("class").split(" ")[2] || event.target.id,
+      post_id = $(event.target).parent().parent().attr("id");
+  if(event_id === "graph"){
+    ajax_path = "graph/";
+  }else {
+    ajax_path = "post/"
+  }
+
+  //@TODO: Clean up client side event handling (maybe with BackboneJS or Angular?)
+  /* CLIENT-SIDE route handling */
+  if(event_class === "comments"){
+    ajax_path += "comment?id="+post_id;
+    target_post = client_Posts.get_obj(parseInt(post_id));
+    console.log(target_post);
+    $.get("ajax/comments?itemId="+target_post.itemId, function (data) {
+      showPostComments(data);
+    });
+  }else if(event_id === "graph"){
+    ajax_path = "graph/all";
+    $.get(ajax_path, function (data) {
+      renderGraphs(data);
+    });
+  }
+
+  else if(event_class === "upvote" && client[ip][parseInt(post_id)].vote !== 0) { return;}
+
+  /* POST AJAX for CRUD */
+  else if(event_class === "crud"){
+    
+    if($(event.target).prop("tagName") === "BUTTON"){
+      
+      $.post("crud/"+event.target.id,
+        {title: $(".title").html(), url: $(".link").html()})
+        .done(function(data){
+          console.log(".crud");
+          console.log(data); 
+          return;
+        });
+    }else {
+      var Form = {};
+      Form.create = false;
+      Form.login = false;
+      if(event.target.id === "create"){
+        Form.create = true;
+      }else if(event.target.id === "login") {
+        Form.login = true;
+      }
+      renderForm(Form);
+      return;
+    }
+  }
+  else {
+
+    if(event_class === "upvote") {
+      client[ip][parseInt(post_id)].vote++;
+      ajax_path += "upvote?id="+post_id;
     }
     else {
       $(".ui.progress.striped").show();
-      if($(event.target).hasClass("sort")){
-        ajax_path += "/" + event.target.id;
+      if( $(event.target).hasClass("sort") ){
+        ajax_path += "sort/" + event.target.id;
+      }
+      else{
+        ajax_path += event_id;
       }
     }
-
     console.log(ajax_path);
-
-    $.get( ajax_path, function( data ) {
-      
+    $.get( ajax_path, function (data) {
       $(".ui.progress.striped").hide();
-      $(".ui.sub.menu").show();
-      
+
+      if(event.target.id !== "trend"){
+        $(".ui.sub.menu").show();
+      }else {
+        $(".ui.sub.menu").hide();
+      }
       //Render new view only if we need to
       if(!data.no_render){
-        client_Posts.set(data);
-        if(event_type !== "upvote"){  
+        if(event_class !== "upvote"){  
+          client_Posts.set(data);
           renderAllPosts(data);
-        }else {
+        } else{
+          client_Posts.set_obj(data, parseInt(data.id));
           updatePost(data);
         }
       }
     });
-  });
+    return;
+  }
+}
+getIP = function() {
+    if (window.XMLHttpRequest) xmlhttp = new XMLHttpRequest();
+    else xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+
+    xmlhttp.open("GET","http://api.hostip.info/get_html.php",false);
+    xmlhttp.send();
+
+    hostipInfo = xmlhttp.responseText.split("\n");
+
+    for (i=0; hostipInfo.length >= i; i++) {
+        ipAddress = hostipInfo[i].split(":");
+        if ( ipAddress[0] == "IP" ) return ipAddress[1];
+    }
+
+    return false;
+}
+var client = {};
+$(function() {
+  $(".ui.progress.striped").hide();
+  $(".ui.sub.menu").hide();
   
-   
-})
+  ip = getIP();
+
+  if(!client[ip]) {
+    client[ip] = [];
+    for(var i=0; i<30; i++){
+      client[ip][i] = {vote: 0};
+    }
+  }
+
+  $(document).on('click', ".ajax", eventHandler);
+})  
+function getip (json){
+   return json.ip;
+  }

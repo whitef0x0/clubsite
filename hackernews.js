@@ -9,6 +9,7 @@ var events = require('events'),
     _ = require('underscore'),
     fs = require('fs');
 
+var jquery = fs.readFileSync("./public/javascripts/jquery-2.1.0.js", "utf-8");
 var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
   for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
   function ctor() { this.constructor = child; }
@@ -20,7 +21,7 @@ var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, par
 
 
 var Hackernews = (function() {
-  var jquery = fs.readFileSync("./public/javascripts/jquery-2.1.0.js");
+  
 
   __extends(Hackernews, events.EventEmitter);
   function Hackernews() {
@@ -29,11 +30,69 @@ var Hackernews = (function() {
     this.newest = this.base + '/newest';
     this.ask = this.base + '/ask';
   }
-  Hackernews.prototype.scrape = function(url, callback) {
+  Hackernews.prototype.scrape_int = function(url, callback) {
     var self;
     self = this;
-    return jsdom.env(self.base+url, ['http://code.jquery.com/jquery-2.1.0.min.js'], function(err, win) {
-      var $, posts, i;
+    return jsdom.env({url: self.base+url, src:[jquery], done: function(err, win) {
+        var $, posts, i;
+        $ = win.$;
+        posts = [];
+        i = 0;
+        $('td.title:not(:last) > a').each(function() {
+          var title, tmp;
+          title = $(this).text();
+          url = $(this).attr('href');
+          posts[i] = {
+            title: title,
+            url: url,
+            info: {},
+            id: i
+          };
+          $('td.subtext:eq(' + i + ') > *').each(function() {
+            var data, raw;
+            raw = $(this).text();
+            data = raw.split(' ')[0];
+            if (raw.indexOf('points') !== -1) {
+              return posts[i].info.points = data;
+            } else if (raw.indexOf('comments') !== -1) {
+              posts[i].itemId = $(this).attr('href').split('=')[1];
+              return posts[i].info.comments = data;
+            } else if (raw.indexOf('discuss') === -1) {
+              return posts[i].info.postedBy = data;
+            }
+          });
+          tmp = $('td.subtext:eq(' + i + ')').text();
+          if (posts[i].info.postedBy != null) {
+            posts[i].info.date = tmp.split(posts[i].info.postedBy + ' ')[1].split('ago')[0];
+          }
+          var date_tmp = tmp.split(" ").splice(4,2);
+          date_obj = new Date();
+
+          if(date_tmp[1] == "minutes"){
+            date_obj.setMinutes(date_obj.getMinutes() - parseInt(date_tmp));
+          }else if(date_tmp[1] == "hours"){
+            date_obj.setHours(date_obj.getHours() - parseInt(date_tmp));
+          }else if(date_tmp[1] == "days"){
+            date_obj.setDate(date_obj.getDate - parseInt(date_tmp));
+          }
+
+
+          if(!posts[i].info.points) posts[i].info.points = 0;
+          posts[i].info.date = date_obj;
+          self.emit('doc', posts[i]);
+          return i++;
+        });
+        if (callback != null) {
+          return callback(posts);
+        }
+      }
+    });
+  }
+  Hackernews.prototype.scrape_ext = function(url, callback) {
+    var self;
+    self = this;
+    return jsdom.env(url, ['http://code.jquery.com/jquery-2.1.0.min.js'], function(err, win) {
+      var $, doc, i;
       $ = win.$;
       posts = [];
       i = 0;
@@ -75,6 +134,8 @@ var Hackernews = (function() {
           date_obj.setDate(date_obj.getDate - parseInt(date_tmp));
         }
 
+
+        if(!posts[i].info.points) posts[i].info.points = 0;
         posts[i].info.date = date_obj;
         self.emit('doc', posts[i]);
         return i++;
@@ -84,6 +145,8 @@ var Hackernews = (function() {
       }
     });
   };
+  
+  
   Hackernews.prototype.scrapeItem = function(itemId, callback) {
     var self, url;
     self = this;
@@ -91,7 +154,7 @@ var Hackernews = (function() {
     return request({
       uri: url
     }, function(err, res, body) {
-      return jsdom.env(body, ['jquery-1.5.min.js'], function(err, win) {
+      return jsdom.env({html: body, src: [jquery], done: function(err, win) {
         var $, comments, i;
         $ = win.$;
         comments = [];
@@ -137,6 +200,7 @@ var Hackernews = (function() {
         });
         if (callback != null) {
           return callback(comments);
+        }
         }
       });
     });

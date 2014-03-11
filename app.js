@@ -7,6 +7,8 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     routes = require('./routes'),
     posts = require('./routes/posts'),
+    graphs = require('./routes/graphs'),
+    crud = require('./routes/graphs'),
     app = express();
 
 // view engine setup
@@ -23,8 +25,12 @@ app.use(app.router);
 
 
 //Route controller
-app.get('/', routes.index);
-app.get('/ajax/:type/:option?*', posts.middleware);
+
+app.get('/post/:type/:option?*', posts.middleware);
+app.get('/graph/:type/:option?*', graphs.middleware);
+app.get('/:view?*', routes.index);
+
+app.post('/crud/:type', crud.middleware);
 
 /// catch 404 and forwarding to error handler
 app.use(function(req, res, next) {

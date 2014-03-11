@@ -5,12 +5,16 @@ html
 		link(rel='stylesheet', href='/stylesheets/style.css').
 		link(rel='stylesheet', href='/stylesheets/semantic.css').
 		script(src='/javascripts/jquery-2.1.0.js').
+		script(src='/javascripts/jquery.flot.js').
 		script(src='/javascripts/handlebars-v1.3.0.js').
+
 		script(src='/javascripts/semantic.min.js').
+
 		script(src='/javascripts/main.js').
+		script(type="application/javascript" src="http://jsonip.appspot.com/?callback=getip").
 	body
 		.ui.tiered.menu
-			ui.item #{title}
+			a.ui.item(href="/") #{title}
 			.right.menu
 				a.item.ajax#all
 					i.browser.icon
@@ -18,13 +22,17 @@ html
 				a.item.ajax#trend
 					i.signal.icon
 					| Trending
-				a.item.ajax#charts
+				a.item.ajax#graph
 					i.pie.chart.basic.icon
 					| Charts
-				a.item.ajax#create
+				a.item.ajax.crud#create
 					i.terminal.icon
 					| New Post
 			.ui.sub.menu
+				a.item.ajax.sort#normal sort by HN Rank
 				a.item.ajax.sort#points sort by Points
 				a.item.ajax.sort#date sort by Date
 		block content
+
+		.footer
+			
